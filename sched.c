@@ -218,6 +218,34 @@ void sjfAlgorithm() {
     printAverage();
 }
 
+int otherProcessesToRun(int index, int gantPos) {
+    if(index == count - 1) {
+        for(int i = 0; i < count; i++) {
+            if(allProcesses[i].arrivalTime <= gantPos) {
+                if(allProcesses[i].timeDone != allProcesses[i].burstTime && i != index) {
+                    return i + 1;
+                }
+            }
+        }
+    } else {
+        for(int i = index + 1; i < count; i++) {
+            if(allProcesses[i].arrivalTime <= gantPos) {
+                if(allProcesses[i].timeDone != allProcesses[i].burstTime && i != index) {
+                    return i + 1;
+                } 
+            }
+        }
+        for(int i = 0; i < index; i++) {
+            if(allProcesses[i].arrivalTime <= gantPos) {
+                if(allProcesses[i].timeDone != allProcesses[i].burstTime && i != index) {
+                    return i + 1;
+                }
+            }
+        }
+    }
+    return 0;
+}
+
 void rrRecursion(int timeSlice, int gantIndex) {
     int notDone = 0;
     int gantPos = gantIndex;
@@ -225,6 +253,14 @@ void rrRecursion(int timeSlice, int gantIndex) {
         // Om timeDone inte är lika med burstTime -> Kolla om timeSlice är mindre än burstTime och isåfall sätt notDone = 1 för att trigga
         // rekursionen en gång till. Tillslut når funktionen en slutsats när alla processer har uppnått timeDone == burstTime.
         if(allProcesses[i].timeDone != allProcesses[i].burstTime) {
+            if(allProcesses[i].arrivalTime > gantPos) {
+                if(otherProcessesToRun(i, gantPos) == 0) {
+                    gantPos = allProcesses[i].arrivalTime;
+                } else {
+                    printf("jump to index: %d\n", otherProcessesToRun(i, gantPos) - 1);
+                    i = otherProcessesToRun(i, gantPos) - 1;
+                }
+            } 
             if(timeSlice < allProcesses[i].burstTime) {
                 allProcesses[i].timeDone += timeSlice;
                 gantPos += timeSlice;
@@ -237,10 +273,11 @@ void rrRecursion(int timeSlice, int gantIndex) {
                 }
             } else {
                 allProcesses[i].timeDone = allProcesses[i].burstTime;
-                gantPos += timeSlice;
+                gantPos += allProcesses[i].burstTime;
                 allProcesses[i].completionTime = gantPos;
             }
-        } 
+        }
+        printf("%d %d\n", i, gantPos);
     }
 
     if(notDone) {
@@ -268,6 +305,11 @@ void rrAlgorithm(int timeSlice) {
     } 
 
     rrRecursion(timeSlice, 0);
+
+    printf("PID\tArrival Time (ms)\tBurst Time (ms)\n");
+    for(int i = 0; i < count; i++) {
+        printf("%d\t\t\t%d\t\t\t%d\n", allProcesses[i].pid, allProcesses[i].arrivalTime, allProcesses[i].burstTime);
+    }
 
     printf("PID\tWaiting Time (ms)\tTurnaround Time (ms)\n");
     for(int i = 0; i < count; i++) {
