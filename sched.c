@@ -171,6 +171,31 @@ void sjfAlgorithm() {
             }
         }
 
+        // Sortera arrival time om två processer har samma burst time
+        for(int i = 0; i < count; i++) {
+            for(int j = i + 1; j < count; j++) {
+                if(allProcesses[i].burstTime == allProcesses[j].burstTime) {
+                    if(allProcesses[i].arrivalTime > allProcesses[j].arrivalTime) {
+                        printf("%d %d\n", i, j);
+                        // Byter plats på pid
+                        int temp = allProcesses[i].pid;
+                        allProcesses[i].pid = allProcesses[j].pid;
+                        allProcesses[j].pid = temp;
+
+                        // Byter plats på arrival time
+                        temp = allProcesses[i].arrivalTime;
+                        allProcesses[i].arrivalTime = allProcesses[j].arrivalTime;
+                        allProcesses[j].arrivalTime = temp;
+
+                        // Byter plats på burst time
+                        temp = allProcesses[i].burstTime;
+                        allProcesses[i].burstTime = allProcesses[j].burstTime;
+                        allProcesses[j].burstTime = temp;
+                    }
+                }
+            }
+        }
+
         // Om arrival time på processen är större än gantPos så vet vi att waiting time kommer att vara 0 eftersom gantPos 
         // är förra processens completion time
         if(allProcesses[i].arrivalTime > gantPos) {
