@@ -18,41 +18,6 @@ struct processes {
 struct processes allProcesses[100];
 
 int count = 1;
-int queue[10];
-int front = -1, rear = -1;
-void enqueue(int i) {
-    if(rear == 10) {
-        printf("overflow");
-    }
-    rear++;
-    queue[rear] = i;
-    if(front == -1) {
-        front = 0;
-    }
-}
-
-int dequeue() {
-    if(front == -1) {
-        printf("overflow");
-    }
-    int temp = queue[front];
-    if(front == rear) {
-        front = rear = -1;
-    } else {
-        front++;
-    }
-    return temp;
-}
-
-int isInQueue(int i) {
-    int k;
-    for(k = front; k <= rear; k++) {
-        if(queue[k] == i) {
-            return 1;
-        }
-    }
-    return 0;
-}
 
 void printAverage() {
     float averageWaitingTime = 0, averageTurnaroundTime = 0;
@@ -257,6 +222,41 @@ void sjfAlgorithm() {
 }
 
 /******************************************************************************/
+int queue[10];
+int front = -1, rear = -1;
+void enqueue(int i) {
+    if(rear == 10) {
+        printf("overflow");
+    }
+    rear++;
+    queue[rear] = i;
+    if(front == -1) {
+        front = 0;
+    }
+}
+
+int dequeue() {
+    if(front == -1) {
+        printf("overflow");
+    }
+    int temp = queue[front];
+    if(front == rear) {
+        front = rear = -1;
+    } else {
+        front++;
+    }
+    return temp;
+}
+
+int isInQueue(int i) {
+    int k;
+    for(k = front; k <= rear; k++) {
+        if(queue[k] == i) {
+            return 1;
+        }
+    }
+    return 0;
+}
 
 void rrAlgorithm(int timeSlice) {
     printf("Scheduling algorithm: RR\n");
@@ -272,7 +272,7 @@ void rrAlgorithm(int timeSlice) {
         }
     } 
 
-    int i, j, burstSum = 0, time = 0;
+    int i, j, burstSum = 0, time = 0, queued = 0;
     for(i = 0; i < count; i++) {
         allProcesses[i].remainingTime = allProcesses[i].burstTime;
         allProcesses[i].completed = 0;
@@ -280,39 +280,39 @@ void rrAlgorithm(int timeSlice) {
     }
 
     enqueue(0); // Köar första processen
-    printf("Process execution order: ");
+
     // Medan time är mindre än burstSum
     for(time = allProcesses[0].arrivalTime; time < burstSum;) {
-        i = dequeue();
+        i = dequeue(); // Index i fronten av kön
 
         // Om processer har mindre eller lika kvarvarande tid som timeSlice
         if(allProcesses[i].remainingTime <= timeSlice) {
             time += allProcesses[i].remainingTime;
             allProcesses[i].remainingTime = 0;
             allProcesses[i].completed = 1;
-            printf(" %d ", allProcesses[i].pid);
             allProcesses[i].waitingTime = time - allProcesses[i].arrivalTime - allProcesses[i].burstTime;
             allProcesses[i].turnaroundTime = time - allProcesses[i].arrivalTime;
             
             // Köar processerna som har kommit under tiden
             for(j = 0; j < count; j++) {
-                if(allProcesses[j].arrivalTime <= time
-                && allProcesses[j].completed != 1
-                && isInQueue(j) != 1) {
+                if(allProcesses[j].arrivalTime <= time && allProcesses[j].completed != 1 && isInQueue(j) != 1) {
                     enqueue(j);
+                    queued = 1;
+                } 
+                if(j == count - 1 && queued != 1 && allProcesses[1].completed != 1 && isInQueue(1) != 1) {
+                    queued = 1; 
+                    time = allProcesses[1].arrivalTime;
+                    burstSum += time - allProcesses[0].burstTime;
+                    enqueue(1);
                 }
             }
         } else { // Om processer har mer kvarvarande tid än timeSlice
             time += timeSlice;
             allProcesses[i].remainingTime -= timeSlice;
-            printf(" %d ", allProcesses[i].pid);
             
             // Köar processerna som har kommit under tiden
             for(j = 0; j < count; j++) {
-                if(allProcesses[j].arrivalTime <= time
-                && allProcesses[j].completed != 1
-                && i != j
-                && isInQueue(j) != 1) {
+                if(allProcesses[j].arrivalTime <= time && allProcesses[j].completed != 1 && i != j && isInQueue(j) != 1) {
                     enqueue(j);
                 }
             }
