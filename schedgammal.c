@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX 100
+int count = 1;
 
 struct processes {
     int pid;
@@ -11,48 +11,10 @@ struct processes {
     int turnaroundTime;
     int waitingTime;
     int completionTime;
-    int remainingTime;
-    int completed;
+    int timeDone;
 };
 
 struct processes allProcesses[100];
-
-int count = 1;
-int queue[10];
-int front = -1, rear = -1;
-void enqueue(int i) {
-    if(rear == 10) {
-        printf("overflow");
-    }
-    rear++;
-    queue[rear] = i;
-    if(front == -1) {
-        front = 0;
-    }
-}
-
-int dequeue() {
-    if(front == -1) {
-        printf("overflow");
-    }
-    int temp = queue[front];
-    if(front == rear) {
-        front = rear = -1;
-    } else {
-        front++;
-    }
-    return temp;
-}
-
-int isInQueue(int i) {
-    int k;
-    for(k = front; k <= rear; k++) {
-        if(queue[k] == i) {
-            return 1;
-        }
-    }
-    return 0;
-}
 
 void printAverage() {
     float averageWaitingTime = 0, averageTurnaroundTime = 0;
@@ -159,7 +121,7 @@ void fcfsAlgorithm() {
 
     printAverage();
 }
-/******************************************************************************/
+
 // Kollar alla nästkommande CPU bursts och hittar den kortaste
 // Om två delar platsen som kortaste CPU burst så gäller FCFS
 // Om en process med kortare CPU burst kommer under tiden en annan process körs så byter SJF till denna process.
@@ -256,7 +218,76 @@ void sjfAlgorithm() {
     printAverage();
 }
 
-/******************************************************************************/
+int otherProcessesToRun(int index, int gantPos) {
+    if(index == count - 1) {
+        for(int i = 0; i < count; i++) {
+            if(allProcesses[i].arrivalTime <= gantPos) {
+                if(allProcesses[i].timeDone != allProcesses[i].burstTime && i != index) {
+                    return i + 1;
+                }
+            }
+        }
+    } else {
+        for(int i = index + 1; i < count; i++) {
+            if(allProcesses[i].arrivalTime <= gantPos) {
+                if(allProcesses[i].timeDone != allProcesses[i].burstTime && i != index) {
+                    return i + 1;
+                } 
+            }
+        }
+        for(int i = 0; i < index; i++) {
+            if(allProcesses[i].arrivalTime <= gantPos) {
+                if(allProcesses[i].timeDone != allProcesses[i].burstTime && i != index) {
+                    return i + 1;
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+void rrRecursion(int timeSlice, int gantIndex) {
+    int notDone = 0;
+    int gantPos = gantIndex;
+    for(int i = 0; i < count; i++) {
+        // Om timeDone inte är lika med burstTime -> Kolla om timeSlice är mindre än burstTime och isåfall sätt notDone = 1 för att trigga
+        // rekursionen en gång till. Tillslut når funktionen en slutsats när alla processer har uppnått timeDone == burstTime.
+        if(allProcesses[i].timeDone != allProcesses[i].burstTime) {
+            if(allProcesses[i].arrivalTime > gantPos) {
+                if(otherProcessesToRun(i, gantPos) == 0) {
+                    gantPos = allProcesses[i].arrivalTime;
+                } else {
+                    printf("jump to index: %d\n", otherProcessesToRun(i, gantPos) - 1);
+                    i = otherProcessesToRun(i, gantPos) - 1;
+                }
+            } 
+            if(timeSlice < allProcesses[i].burstTime) {
+                allProcesses[i].timeDone += timeSlice;
+                gantPos += timeSlice;
+                allProcesses[i].completionTime = gantPos;
+                notDone = 1;
+                if(allProcesses[i].timeDone > allProcesses[i].burstTime) {
+                    gantPos -= allProcesses[i].timeDone - allProcesses[i].burstTime;
+                    allProcesses[i].timeDone = allProcesses[i].burstTime;
+                    allProcesses[i].completionTime = gantPos;
+                }
+            } else {
+                allProcesses[i].timeDone = allProcesses[i].burstTime;
+                gantPos += allProcesses[i].burstTime;
+                allProcesses[i].completionTime = gantPos;
+            }
+        }
+    }
+
+    if(notDone) {
+        rrRecursion(timeSlice, gantPos);
+    } else {
+        for(int i = 0; i < count; i++) {
+            allProcesses[i].turnaroundTime = allProcesses[i].completionTime - allProcesses[i].arrivalTime;
+            allProcesses[i].waitingTime = allProcesses[i].turnaroundTime - allProcesses[i].burstTime;
+        }
+    }
+}
 
 void rrAlgorithm(int timeSlice) {
     printf("Scheduling algorithm: RR\n");
@@ -272,58 +303,7 @@ void rrAlgorithm(int timeSlice) {
         }
     } 
 
-    int i, j, burstSum = 0, time = 0;
-    for(i = 0; i < count; i++) {
-        allProcesses[i].remainingTime = allProcesses[i].burstTime;
-        allProcesses[i].completed = 0;
-        burstSum += allProcesses[i].burstTime;
-    }
-
-    enqueue(0); // Köar första processen
-    printf("Process execution order: ");
-    // Medan time är mindre än burstSum
-    for(time = allProcesses[0].arrivalTime; time < burstSum;) {
-        i = dequeue();
-
-        // Om processer har mindre eller lika kvarvarande tid som timeSlice
-        if(allProcesses[i].remainingTime <= timeSlice) {
-            time += allProcesses[i].remainingTime;
-            allProcesses[i].remainingTime = 0;
-            allProcesses[i].completed = 1;
-            printf(" %d ", allProcesses[i].pid);
-            allProcesses[i].waitingTime = time - allProcesses[i].arrivalTime - allProcesses[i].burstTime;
-            allProcesses[i].turnaroundTime = time - allProcesses[i].arrivalTime;
-            
-            // Köar processerna som har kommit under tiden
-            for(j = 0; j < count; j++) {
-                if(allProcesses[j].arrivalTime <= time
-                && allProcesses[j].completed != 1
-                && isInQueue(j) != 1) {
-                    enqueue(j);
-                }
-            }
-        } else { // Om processer har mer kvarvarande tid än timeSlice
-            time += timeSlice;
-            allProcesses[i].remainingTime -= timeSlice;
-            printf(" %d ", allProcesses[i].pid);
-            
-            // Köar processerna som har kommit under tiden
-            for(j = 0; j < count; j++) {
-                if(allProcesses[j].arrivalTime <= time
-                && allProcesses[j].completed != 1
-                && i != j
-                && isInQueue(j) != 1) {
-                    enqueue(j);
-                }
-            }
-            enqueue(i); // Sen köas processen som är preemted
-        }
-    }
-
-    printf("PID\tArrival Time (ms)\tBurst Time (ms)\n");
-    for(int i = 0; i < count; i++) {
-        printf("%d\t\t\t%d\t\t\t%d\n", allProcesses[i].pid, allProcesses[i].arrivalTime, allProcesses[i].burstTime);
-    }
+    rrRecursion(timeSlice, 0);
 
     printf("PID\tWaiting Time (ms)\tTurnaround Time (ms)\n");
     for(int i = 0; i < count; i++) {
