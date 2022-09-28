@@ -226,7 +226,7 @@ int queue[10];
 int front = -1, rear = -1;
 void enqueue(int i) {
     if(rear == 10) {
-        printf("overflow");
+        //printf("overflow");
     }
     rear++;
     queue[rear] = i;
@@ -237,7 +237,7 @@ void enqueue(int i) {
 
 int dequeue() {
     if(front == -1) {
-        printf("overflow");
+        //printf("overflow");
     }
     int temp = queue[front];
     if(front == rear) {
@@ -318,11 +318,6 @@ void rrAlgorithm(int timeSlice) {
             }
             enqueue(i); // Sen köas processen som är preemted
         }
-    }
-
-    printf("PID\tArrival Time (ms)\tBurst Time (ms)\n");
-    for(int i = 0; i < count; i++) {
-        printf("%d\t\t\t%d\t\t\t%d\n", allProcesses[i].pid, allProcesses[i].arrivalTime, allProcesses[i].burstTime);
     }
 
     printf("PID\tWaiting Time (ms)\tTurnaround Time (ms)\n");
