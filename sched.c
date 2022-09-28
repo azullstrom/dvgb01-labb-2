@@ -15,7 +15,7 @@ struct processes {
     int completed;
 };
 
-struct processes allProcesses[100];
+struct processes allProcesses[MAX];
 
 int count = 1;
 
@@ -175,24 +175,24 @@ void sjfAlgorithm() {
         }
 
         // Sortera arrival time om två processer har samma burst time
-        for(int i = 0; i < count; i++) {
-            for(int j = i + 1; j < count; j++) {
-                if(allProcesses[i].burstTime == allProcesses[j].burstTime) {
-                    if(allProcesses[i].arrivalTime > allProcesses[j].arrivalTime) {
-                        printf("%d %d\n", i, j);
+        for(int k = 0; k < count; k++) {
+            for(int j = k + 1; j < count; j++) {
+                if(allProcesses[k].burstTime == allProcesses[j].burstTime) {
+                    if(allProcesses[k].arrivalTime > allProcesses[j].arrivalTime) {
+                        printf("%d %d\n", k, j);
                         // Byter plats på pid
-                        int temp = allProcesses[i].pid;
-                        allProcesses[i].pid = allProcesses[j].pid;
+                        int temp = allProcesses[k].pid;
+                        allProcesses[k].pid = allProcesses[j].pid;
                         allProcesses[j].pid = temp;
 
                         // Byter plats på arrival time
-                        temp = allProcesses[i].arrivalTime;
-                        allProcesses[i].arrivalTime = allProcesses[j].arrivalTime;
+                        temp = allProcesses[k].arrivalTime;
+                        allProcesses[k].arrivalTime = allProcesses[j].arrivalTime;
                         allProcesses[j].arrivalTime = temp;
 
                         // Byter plats på burst time
-                        temp = allProcesses[i].burstTime;
-                        allProcesses[i].burstTime = allProcesses[j].burstTime;
+                        temp = allProcesses[k].burstTime;
+                        allProcesses[k].burstTime = allProcesses[j].burstTime;
                         allProcesses[j].burstTime = temp;
                     }
                 }
@@ -204,11 +204,11 @@ void sjfAlgorithm() {
         if(allProcesses[i].arrivalTime > gantPos) {
             allProcesses[i].waitingTime = 0;
             allProcesses[i].turnaroundTime = allProcesses[i].waitingTime + allProcesses[i].burstTime;
-            allProcesses[i].completionTime = allProcesses[i].burstTime;
+            //allProcesses[i].completionTime = allProcesses[i].burstTime;
         } else {
             allProcesses[i].waitingTime = gantPos - allProcesses[i].arrivalTime;
             allProcesses[i].turnaroundTime = allProcesses[i].waitingTime + allProcesses[i].burstTime;
-            allProcesses[i].completionTime = allProcesses[i].burstTime;
+            //allProcesses[i].completionTime = allProcesses[i].burstTime;
         }
         gantPos += allProcesses[i].burstTime;
     }
@@ -222,12 +222,10 @@ void sjfAlgorithm() {
 }
 
 /******************************************************************************/
-int queue[10];
+
+int queue[100];
 int front = -1, rear = -1;
 void enqueue(int i) {
-    if(rear == 10) {
-        //printf("overflow");
-    }
     rear++;
     queue[rear] = i;
     if(front == -1) {
@@ -236,9 +234,6 @@ void enqueue(int i) {
 }
 
 int dequeue() {
-    if(front == -1) {
-        //printf("overflow");
-    }
     int temp = queue[front];
     if(front == rear) {
         front = rear = -1;
@@ -273,6 +268,7 @@ void rrAlgorithm(int timeSlice) {
     } 
 
     int i, j, burstSum = 0, time = 0, queued = 0;
+    // Initialiserar remainingTime och completed och sätter burstSum till alla processers burst time
     for(i = 0; i < count; i++) {
         allProcesses[i].remainingTime = allProcesses[i].burstTime;
         allProcesses[i].completed = 0;
@@ -281,9 +277,9 @@ void rrAlgorithm(int timeSlice) {
 
     enqueue(0); // Köar första processen
 
-    // Medan time är mindre än burstSum
+    // Medan time är mindre än burstSum, som en while-loop
     for(time = allProcesses[0].arrivalTime; time < burstSum;) {
-        i = dequeue(); // Index i fronten av kön
+        i = dequeue(); // dequeue returnerar indexet först i kön och tar sedan bort det.
 
         // Om processer har mindre eller lika kvarvarande tid som timeSlice
         if(allProcesses[i].remainingTime <= timeSlice) {
